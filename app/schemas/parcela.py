@@ -55,3 +55,12 @@ class ParcelaEstadoResponse(BaseModel):
 	nombre: str
 	timestamp_simulacion: datetime | None = None
 	controladores: list[ControladorEstado]
+
+class ParcelaListItem(BaseModel):
+	model_config = ConfigDict(from_attributes=True)
+	parcela_id: int
+	nombre: str
+
+
+class ParcelasListResponse(BaseModel):
+	parcelas: list[ParcelaListItem]

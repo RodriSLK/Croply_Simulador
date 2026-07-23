@@ -4,12 +4,17 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.parcela import ParcelaRequest
+from app.models.parcela_simulada import ParcelaSimulada
+from app.schemas.parcela import ParcelaRequest, ParcelasListResponse
 from app.services.parcela_service import crear_parcela, eliminar_parcela, reemplazar_configuracion
 
 
 router = APIRouter()
 
+@router.get("/parcelas", response_model=ParcelasListResponse)
+def listar_parcelas_endpoint(db: Session = Depends(get_db)) -> ParcelasListResponse:
+	parcelas = db.query(ParcelaSimulada).filter(ParcelaSimulada.activa == True).all()
+	return ParcelasListResponse(parcelas=parcelas)
 
 @router.post("/parcelas", status_code=status.HTTP_201_CREATED)
 def crear_parcela_endpoint(dto: ParcelaRequest, db: Session = Depends(get_db)) -> dict[str, str]:

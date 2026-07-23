@@ -1,1 +1,679 @@
-<html><body>Pendiente</body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Croply IoT Simulator — Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+	:root {
+		--verde: #076B45;
+		--verde-oscuro: #054d32;
+		--crema: #FAF7F0;
+		--crema-card: #FFFFFF;
+		--borde: #E4DFD3;
+		--texto: #23281f;
+		--texto-suave: #6b6a63;
+		--rojo: #b3261e;
+		--amarillo: #8a6d1a;
+		--radio: 10px;
+	}
+
+	* { box-sizing: border-box; }
+
+	body {
+		margin: 0;
+		font-family: 'Montserrat', system-ui, sans-serif;
+		background: var(--crema);
+		color: var(--texto);
+	}
+
+	header {
+		background: var(--verde);
+		color: #fff;
+		padding: 18px 24px;
+	}
+
+	header h1 {
+		font-size: 18px;
+		margin: 0;
+		font-weight: 600;
+	}
+
+	.status-card {
+		background: var(--crema-card);
+		border: 1px solid var(--borde);
+		border-radius: var(--radio);
+		padding: 18px 20px;
+		margin-bottom: 20px;
+	}
+
+	.status-card-header {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 14px;
+	}
+
+	.status-card-header h2 {
+		margin: 0;
+		font-size: 14px;
+		font-weight: 600;
+	}
+
+	.status-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+		gap: 14px;
+	}
+
+	.status-item {
+		background: var(--crema);
+		border: 1px solid var(--borde);
+		border-radius: var(--radio);
+		padding: 12px 14px;
+	}
+
+	.status-item .label {
+		display: block;
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: var(--texto-suave);
+		margin-bottom: 6px;
+	}
+
+	.status-item .valor {
+		display: flex;
+		align-items: center;
+		font-size: 14px;
+		font-weight: 600;
+	}
+
+	.dot {
+		display: inline-block;
+		width: 9px;
+		height: 9px;
+		border-radius: 50%;
+		margin-right: 6px;
+		background: #ccc;
+	}
+
+	.dot.on { background: #6fe0a3; }
+	.dot.off { background: #f28b82; }
+
+	main {
+		max-width: 1100px;
+		margin: 0 auto;
+		padding: 24px;
+	}
+
+	.toolbar {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+		margin-bottom: 18px;
+	}
+
+	button {
+		font-family: inherit;
+		border: none;
+		border-radius: var(--radio);
+		padding: 8px 14px;
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		background: var(--verde);
+		color: #fff;
+	}
+
+	button:hover { background: var(--verde-oscuro); }
+
+	button.secundario {
+		background: #fff;
+		color: var(--verde);
+		border: 1px solid var(--verde);
+	}
+
+	button.secundario:hover { background: #eef6f1; }
+
+	button.peligro {
+		background: #fff;
+		color: var(--rojo);
+		border: 1px solid var(--rojo);
+	}
+
+	button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	#parcelas-container {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.parcela-card {
+		background: var(--crema-card);
+		border: 1px solid var(--borde);
+		border-radius: var(--radio);
+		padding: 18px 20px;
+	}
+
+	.parcela-card-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-bottom: 12px;
+	}
+
+	.parcela-card-header h3 {
+		margin: 0;
+		font-size: 15px;
+		font-weight: 600;
+	}
+
+	.controlador-badge {
+		font-size: 11px;
+		padding: 3px 9px;
+		border-radius: 999px;
+		font-weight: 600;
+	}
+
+	.controlador-badge.transmitiendo {
+		background: #e4f3ea;
+		color: var(--verde-oscuro);
+	}
+
+	.controlador-badge.sin-senal {
+		background: #fbe9e7;
+		color: var(--rojo);
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 13px;
+		margin-bottom: 12px;
+	}
+
+	th, td {
+		text-align: left;
+		padding: 6px 8px;
+		border-bottom: 1px solid var(--borde);
+	}
+
+	th {
+		color: var(--texto-suave);
+		font-weight: 500;
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.acciones {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		align-items: center;
+		border-top: 1px solid var(--borde);
+		padding-top: 12px;
+	}
+
+	.acciones-titulo {
+		width: 100%;
+		margin: 0 0 4px 0;
+		font-size: 11px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: var(--texto-suave);
+	}
+
+	.acciones input[type="number"] {
+		width: 64px;
+		padding: 6px 8px;
+		border: 1px solid var(--borde);
+		border-radius: 6px;
+		font-family: inherit;
+		font-size: 13px;
+	}
+
+	.grupo-accion {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+	}
+
+	.historial {
+		margin-top: 12px;
+		display: none;
+	}
+
+	.historial.abierto { display: block; }
+
+	.historial-lista {
+		max-height: 420px;
+		overflow-y: auto;
+		padding-right: 4px;
+	}
+
+	.ciclo-bloque {
+		border-left: 3px solid var(--verde);
+		padding-left: 10px;
+		margin-bottom: 16px;
+	}
+
+	.ciclo-bloque:last-child {
+		margin-bottom: 0;
+	}
+
+	.ciclo-bloque table {
+		margin-bottom: 0;
+	}
+
+	.ciclo-titulo {
+		margin: 0 0 6px 0;
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--verde-oscuro);
+	}
+
+	.vacio, .cargando {
+		color: var(--texto-suave);
+		font-size: 13px;
+		padding: 12px 0;
+	}
+
+	#log-section {
+		margin-top: 28px;
+	}
+
+	#log-section h2 {
+		font-size: 14px;
+		margin-bottom: 8px;
+	}
+
+	#log {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		max-height: 220px;
+		overflow-y: auto;
+		background: #fff;
+		border: 1px solid var(--borde);
+		border-radius: var(--radio);
+	}
+
+	#log li {
+		padding: 7px 12px;
+		font-size: 12px;
+		border-bottom: 1px solid var(--borde);
+		font-family: 'Courier New', monospace;
+	}
+
+	#log li:last-child { border-bottom: none; }
+
+	#log li.error { color: var(--rojo); }
+	#log li.ok { color: var(--verde-oscuro); }
+
+	.footer-links {
+		margin-top: 20px;
+		text-align: center;
+	}
+
+	.link-swagger {
+		display: inline-block;
+		font-family: inherit;
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--verde);
+		text-decoration: none;
+		border: 1px solid var(--verde);
+		border-radius: var(--radio);
+		padding: 8px 16px;
+	}
+
+	.link-swagger:hover {
+		background: #eef6f1;
+	}
+</style>
+</head>
+<body>
+
+<header>
+	<h1>Croply IoT Simulator</h1>
+</header>
+
+<main>
+	<div class="status-card">
+		<div class="status-card-header">
+			<h2>Estado del scheduler</h2>
+			<div class="grupo-accion">
+				<button id="btn-cargar-parcelas">Cargar / actualizar parcelas</button>
+			</div>
+		</div>
+		<div class="status-grid">
+			<div class="status-item">
+				<span class="label">Scheduler</span>
+				<span class="valor"><span id="dot-scheduler" class="dot"></span><span id="status-scheduler">—</span></span>
+			</div>
+			<div class="status-item">
+				<span class="label">Última ejecución</span>
+				<span class="valor" id="status-ultima">—</span>
+			</div>
+			<div class="status-item">
+				<span class="label">Próxima ejecución</span>
+				<span class="valor" id="status-proxima">—</span>
+			</div>
+			<div class="status-item">
+				<span class="label">Parcelas activas</span>
+				<span class="valor" id="status-parcelas">—</span>
+			</div>
+		</div>
+	</div>
+
+	<div id="parcelas-container">
+		<p class="vacio">Todavía no cargaste ninguna parcela. Tocá "Cargar / actualizar parcelas".</p>
+	</div>
+
+	<div id="log-section">
+		<h2>Registro de actividad</h2>
+		<ul id="log"></ul>
+	</div>
+
+	<div class="footer-links">
+		<a href="/docs" target="_blank" rel="noopener" class="link-swagger">
+			Abrir Swagger UI (/docs) ↗
+		</a>
+	</div>
+</main>
+
+<script>
+	const MAX_LOG = 100;
+	const logEl = document.getElementById('log');
+
+	function log(mensaje, tipo) {
+		const li = document.createElement('li');
+		const hora = new Date().toLocaleTimeString('es-AR', { hour12: false });
+		li.textContent = `[${hora}] ${mensaje}`;
+		if (tipo) li.classList.add(tipo);
+		logEl.prepend(li);
+		while (logEl.children.length > MAX_LOG) {
+			logEl.removeChild(logEl.lastChild);
+		}
+	}
+
+	async function llamarApi(path, opciones) {
+		const respuesta = await fetch(path, opciones);
+		let cuerpo = null;
+		try { cuerpo = await respuesta.json(); } catch (_) { /* sin cuerpo JSON */ }
+		if (!respuesta.ok) {
+			const detalle = (cuerpo && cuerpo.detail) ? cuerpo.detail : `HTTP ${respuesta.status}`;
+			throw new Error(detalle);
+		}
+		return cuerpo;
+	}
+
+	function formatearFecha(iso) {
+		if (!iso) return 'sin lecturas aún';
+		const fecha = new Date(iso);
+		return fecha.toLocaleString('es-AR');
+	}
+
+	// ---------- Barra de estado global ----------
+
+	async function actualizarStatus() {
+		try {
+			const s = await llamarApi('/status');
+			document.getElementById('status-scheduler').textContent = s.scheduler_activo ? 'activo' : 'detenido';
+			document.getElementById('dot-scheduler').className = 'dot ' + (s.scheduler_activo ? 'on' : 'off');
+			document.getElementById('status-ultima').textContent = formatearFecha(s.ultima_ejecucion);
+			document.getElementById('status-proxima').textContent = formatearFecha(s.proxima_ejecucion);
+			document.getElementById('status-parcelas').textContent = s.parcelas_activas;
+		} catch (err) {
+			log('No se pudo consultar /status: ' + err.message, 'error');
+		}
+	}
+
+	actualizarStatus();
+	setInterval(actualizarStatus, 60000);
+
+	// ---------- Carga de parcelas y su estado ----------
+
+	document.getElementById('btn-cargar-parcelas').addEventListener('click', cargarParcelas);
+
+	async function cargarParcelas() {
+		const contenedor = document.getElementById('parcelas-container');
+		const boton = document.getElementById('btn-cargar-parcelas');
+		boton.disabled = true;
+		try {
+			const listado = await llamarApi('/parcelas');
+			if (!listado.parcelas || listado.parcelas.length === 0) {
+				contenedor.innerHTML = '<p class="vacio">No hay parcelas activas registradas todavía.</p>';
+				return;
+			}
+
+			contenedor.innerHTML = '';
+			for (const p of listado.parcelas) {
+				const card = document.createElement('div');
+				card.className = 'parcela-card';
+				card.id = `parcela-${p.parcela_id}`;
+				card.innerHTML = '<p class="cargando">Cargando estado...</p>';
+				contenedor.appendChild(card);
+			}
+
+			await Promise.all(listado.parcelas.map(p => cargarEstadoParcela(p.parcela_id)));
+			log(`Se cargaron ${listado.parcelas.length} parcela(s) desde /parcelas.`, 'ok');
+		} catch (err) {
+			log('No se pudo cargar el listado de parcelas: ' + err.message, 'error');
+		} finally {
+			boton.disabled = false;
+		}
+	}
+
+	async function cargarEstadoParcela(parcelaId) {
+		const card = document.getElementById(`parcela-${parcelaId}`);
+		try {
+			const estado = await llamarApi(`/parcelas/${parcelaId}/estado`);
+			renderParcelaCard(card, estado);
+		} catch (err) {
+			card.innerHTML = `<p class="vacio">Error consultando el estado de la parcela ${parcelaId}: ${err.message}</p>`;
+			log(`Error consultando /parcelas/${parcelaId}/estado: ${err.message}`, 'error');
+		}
+	}
+
+	function renderParcelaCard(card, estado) {
+		const controlador = estado.controladores[0];
+		const enSinSenal = detectarSinSenal(controlador);
+
+		let filasSensores = '<p class="vacio">Este controlador no tiene sensores.</p>';
+		if (controlador && controlador.sensores.length > 0) {
+			filasSensores = `
+				<table>
+					<thead>
+						<tr><th>Sensor</th><th>Tipo</th><th>Valor</th><th>Última lectura</th></tr>
+					</thead>
+					<tbody>
+						${controlador.sensores.map(s => `
+							<tr>
+								<td>#${s.sensor_id}</td>
+								<td>${s.tipo}</td>
+								<td>${s.valor_actual != null ? s.valor_actual.toFixed(2) + ' ' + (s.unidad || '') : '—'}</td>
+								<td>${formatearFecha(s.fecha_ultima_lectura)}</td>
+							</tr>
+						`).join('')}
+					</tbody>
+				</table>
+			`;
+		}
+
+		card.innerHTML = `
+			<div class="parcela-card-header">
+				<h3>${estado.nombre} — ID ${estado.parcela_id}</h3>
+				${controlador ? `<span class="controlador-badge ${enSinSenal ? 'sin-senal' : 'transmitiendo'}">
+					${enSinSenal ? 'SIN SEÑAL' : 'TRANSMITIENDO'}
+				</span>` : ''}
+			</div>
+
+			${filasSensores}
+
+			<div class="acciones">
+				<p class="acciones-titulo">Acciones</p>
+				<div class="grupo-accion">
+					<input type="number" min="0" step="1" value="20" id="mm-riego-${estado.parcela_id}" title="Milímetros de agua a aplicar" />
+					<button class="secundario" data-accion="riego" title="Registra un riego con los mm indicados. Se aplica en el próximo ciclo del scheduler (afecta la humedad del suelo).">Riego</button>
+				</div>
+				<div class="grupo-accion">
+					<button class="secundario" data-accion="helada" title="Simula una helada: fuerza una caída brusca de temperatura. Se aplica en el próximo ciclo del scheduler.">Simular helada</button>
+				</div>
+				<div class="grupo-accion">
+					<input type="number" min="0" step="1" value="10" id="mm-lluvia-${estado.parcela_id}" title="Milímetros de lluvia a simular" />
+					<button class="secundario" data-accion="lluvia" title="Registra una lluvia con los mm indicados. Se aplica en el próximo ciclo del scheduler (afecta precipitación y humedad del suelo).">Lluvia</button>
+				</div>
+				<div class="grupo-accion">
+					<button class="peligro" data-accion="desconectar-ahora" title="Pone el controlador en SIN_SEÑAL de inmediato (no espera al scheduler). Simula una falla de conexión del nodo.">Forzar SIN_SEÑAL (ya)</button>
+					<button class="secundario" data-accion="reconectar-ahora" title="Vuelve a poner el controlador en TRANSMITIENDO de inmediato (no espera al scheduler).">Reconectar (ya)</button>
+				</div>
+				<div class="grupo-accion">
+					<button class="secundario" data-accion="historial" title="Muestra las últimas 50 lecturas guardadas de esta parcela.">Ver historial</button>
+				</div>
+			</div>
+
+			<div class="historial" id="historial-${estado.parcela_id}"></div>
+		`;
+
+		card.querySelector('[data-accion="riego"]').addEventListener('click', () => {
+			const mm = Number(document.getElementById(`mm-riego-${estado.parcela_id}`).value) || 0;
+			crearEvento(estado.parcela_id, 'RIEGO', { mm });
+		});
+		card.querySelector('[data-accion="helada"]').addEventListener('click', () => {
+			crearEvento(estado.parcela_id, 'HELADA', {});
+		});
+		card.querySelector('[data-accion="lluvia"]').addEventListener('click', () => {
+			const mm = Number(document.getElementById(`mm-lluvia-${estado.parcela_id}`).value) || 0;
+			crearEvento(estado.parcela_id, 'LLUVIA', { mm });
+		});
+		card.querySelector('[data-accion="desconectar-ahora"]').addEventListener('click', () => {
+			cambiarControladorAhora(estado.parcela_id, 'SIN_SEÑAL');
+		});
+		card.querySelector('[data-accion="reconectar-ahora"]').addEventListener('click', () => {
+			cambiarControladorAhora(estado.parcela_id, 'TRANSMITIENDO');
+		});
+		card.querySelector('[data-accion="historial"]').addEventListener('click', () => {
+			toggleHistorial(estado.parcela_id);
+		});
+	}
+
+	function detectarSinSenal(controlador) {
+		// El estado del controlador no viaja en GET /estado (solo sensores),
+		// así que lo inferimos: si ningún sensor tiene lectura reciente, lo mostramos
+		// como posible SIN_SEÑAL. Esto es solo una pista visual, no un dato exacto.
+		if (!controlador || controlador.sensores.length === 0) return false;
+		return controlador.sensores.every(s => s.fecha_ultima_lectura == null);
+	}
+
+	// ---------- Eventos manuales ----------
+
+	async function crearEvento(parcelaId, tipo, parametros) {
+		try {
+			await llamarApi(`/parcelas/${parcelaId}/eventos`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ tipo, parametros }),
+			});
+			log(`Evento ${tipo} creado para la parcela ${parcelaId}. Se aplica en el próximo ciclo del scheduler.`, 'ok');
+		} catch (err) {
+			log(`Error creando evento ${tipo} en parcela ${parcelaId}: ${err.message}`, 'error');
+		}
+	}
+
+	// ---------- Cambio inmediato del controlador ----------
+
+	async function cambiarControladorAhora(parcelaId, estado) {
+		try {
+			await llamarApi(`/parcelas/${parcelaId}/controlador`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ estado }),
+			});
+			log(`Controlador de la parcela ${parcelaId} cambiado a ${estado} de forma inmediata.`, 'ok');
+			cargarEstadoParcela(parcelaId);
+		} catch (err) {
+			log(`Error cambiando el controlador de la parcela ${parcelaId}: ${err.message}`, 'error');
+		}
+	}
+
+	// ---------- Historial expandible ----------
+
+	function agruparPorCiclo(lecturas) {
+		const grupos = new Map();
+		for (const l of lecturas) {
+			if (!grupos.has(l.timestamp)) grupos.set(l.timestamp, []);
+			grupos.get(l.timestamp).push(l);
+		}
+		// El backend ya devuelve las lecturas ordenadas por timestamp desc,
+		// así que el orden de inserción en el Map respeta ese mismo orden.
+		return Array.from(grupos.entries());
+	}
+
+	async function toggleHistorial(parcelaId) {
+		const contenedor = document.getElementById(`historial-${parcelaId}`);
+		const abierto = contenedor.classList.contains('abierto');
+
+		if (abierto) {
+			contenedor.classList.remove('abierto');
+			return;
+		}
+
+		contenedor.classList.add('abierto');
+		contenedor.innerHTML = '<p class="cargando">Cargando historial...</p>';
+
+		try {
+			const data = await llamarApi(`/parcelas/${parcelaId}/lecturas?limit=50`);
+			if (!data.lecturas || data.lecturas.length === 0) {
+				contenedor.innerHTML = '<p class="vacio">Todavía no hay lecturas registradas.</p>';
+				return;
+			}
+
+			const grupos = agruparPorCiclo(data.lecturas);
+			contenedor.innerHTML = `
+				<div class="historial-lista">
+					${grupos.map(([timestamp, lecturasDelCiclo]) => `
+						<div class="ciclo-bloque">
+							<p class="ciclo-titulo">Ciclo — ${formatearFecha(timestamp)}</p>
+							<table>
+								<thead>
+									<tr><th>Sensor</th><th>Tipo</th><th>Valor</th></tr>
+								</thead>
+								<tbody>
+									${lecturasDelCiclo.map(l => `
+										<tr>
+											<td>#${l.sensor_id}</td>
+											<td>${l.tipo_sensor}</td>
+											<td>${l.valor.toFixed(2)} ${l.unidad || ''}</td>
+										</tr>
+									`).join('')}
+								</tbody>
+							</table>
+						</div>
+					`).join('')}
+				</div>
+			`;
+		} catch (err) {
+			contenedor.innerHTML = `<p class="vacio">Error cargando historial: ${err.message}</p>`;
+			log(`Error consultando /parcelas/${parcelaId}/lecturas: ${err.message}`, 'error');
+		}
+	}
+
+	log('Panel iniciado.');
+</script>
+
+</body>
+</html>

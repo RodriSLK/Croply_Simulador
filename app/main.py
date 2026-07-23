@@ -10,6 +10,7 @@ from app.routers.lecturas import router as lecturas_router
 from app.routers.parcelas import router as parcelas_router
 from app.routers.status import router as status_router
 from app.services.scheduler_service import detener_scheduler, iniciar_scheduler
+from fastapi.staticfiles import StaticFiles
 
 setup_logging()
 
@@ -32,9 +33,9 @@ def stop_scheduler() -> None:
     detener_scheduler()
 
 
-@app.get("/")
-def read_root() -> dict[str, str]:
-    return {"status": "ok"}
+#@app.get("/")
+#def read_root() -> dict[str, str]:
+#    return {"status": "ok"}
 
 
 @app.exception_handler(ParcelaNoEncontradaError)
@@ -50,3 +51,6 @@ def handle_parcela_ya_existe(_: Request, exc: ParcelaYaExisteError) -> JSONRespo
 @app.exception_handler(Exception)
 def handle_unexpected_error(_: Request, __: Exception) -> JSONResponse:
     return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal Server Error"})
+
+
+app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
