@@ -3,8 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 
 from app.enums.enums import TipoAlerta, TipoEvento, TipoSensorEnum
 from app.exceptions import OpenMeteoError
@@ -18,10 +17,7 @@ from app.schemas.evento import EventoEntrada
 from app.services.alerta_service import reiniciar_estado_alertas
 from app.services.evento_service import crear_evento_pendiente
 from app.services.scheduler_service import ejecutar_ciclo_simulacion, obtener_estado_scheduler
-
-
-ENGINE = create_engine("postgresql+psycopg://usuario:password@localhost:5432/croply_simulator")
-SessionLocal = sessionmaker(bind=ENGINE, autocommit=False, autoflush=False)
+from tests.conftest import ENGINE, SessionLocal
 
 
 def _limpiar_tablas() -> None:

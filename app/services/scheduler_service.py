@@ -104,15 +104,6 @@ def obtener_estado_scheduler() -> dict[str, object]:
 	}
 
 
-def _obtener_sensores_ordenados(db: Session, parcela_id: int) -> list[SensorSimulado]:
-	sensores = list(
-		db.scalars(
-			select(SensorSimulado).where(SensorSimulado.parcela_id == parcela_id)
-		).all()
-	)
-	return sorted(sensores, key=lambda sensor: _ORDEN_SENSORES[sensor.tipo])
-
-
 def _obtener_evento_como_dict(evento: EventoManualPendiente | None) -> dict[str, object] | None:
 	if evento is None:
 		return None
@@ -123,16 +114,24 @@ def _obtener_evento_como_dict(evento: EventoManualPendiente | None) -> dict[str,
 
 
 def _procesar_parcela(db: Session, parcela: ParcelaSimulada) -> None:
-	controlador = db.scalar(
-		select(ControladorSimulado).where(ControladorSimulado.parcela_id == parcela.parcela_id)
+	controladores = list(
+		db.scalars(
+			select(ControladorSimulado).where(ControladorSimulado.parcela_id == parcela.parcela_id)
+		).all()
 	)
-	if controlador is None or controlador.estado != EstadoTransmision.TRANSMITIENDO:
+	controladores_transmitiendo = [
+		controlador
+		for controlador in controladores
+		if controlador.estado == EstadoTransmision.TRANSMITIENDO
+	]
+	if not controladores_transmitiendo:
 		return
 
 	evento = obtener_evento_pendiente_mas_antiguo(db, parcela.parcela_id)
 
 	if evento is not None and evento.tipo_evento == TipoEvento.DESCONECTAR_NODO:
-		controlador.estado = EstadoTransmision.SIN_SEÑAL
+		for controlador in controladores_transmitiendo:
+			controlador.estado = EstadoTransmision.SIN_SEÑAL
 		marcar_evento_aplicado(db, evento, commit=False)
 		db.commit()
 		return
@@ -148,24 +147,33 @@ def _procesar_parcela(db: Session, parcela: ParcelaSimulada) -> None:
 	evento_dict = _obtener_evento_como_dict(evento)
 	hora_ahora = datetime.now(timezone.utc)
 
-	for sensor in _obtener_sensores_ordenados(db, parcela.parcela_id):
-		calcular_valor = _CICLO_SENSORES.get(sensor.tipo)
-		if calcular_valor is None:
-			raise ValueError(f"Tipo de sensor no soportado: {sensor.tipo}")
-
-		valor, unidad = calcular_valor(datos_clima, sensor, evento_dict, contexto)
-		sensor.ultimo_valor = valor
-		sensor.fecha_ultima_lectura = hora_ahora
-		db.add(
-			LecturaSensorSimulada(
-				sensor_id=sensor.sensor_id,
-				parcela_id=parcela.parcela_id,
-				tipo_sensor=sensor.tipo.value,
-				valor=valor,
-				unidad=unidad,
-				timestamp=hora_ahora,
-			)
+	for controlador in controladores_transmitiendo:
+		sensores = sorted(
+			db.scalars(
+				select(SensorSimulado).where(
+					SensorSimulado.controlador_id == controlador.controlador_id
+				)
+			).all(),
+			key=lambda sensor: _ORDEN_SENSORES[sensor.tipo],
 		)
+		for sensor in sensores:
+			calcular_valor = _CICLO_SENSORES.get(sensor.tipo)
+			if calcular_valor is None:
+				raise ValueError(f"Tipo de sensor no soportado: {sensor.tipo}")
+
+			valor, unidad = calcular_valor(datos_clima, sensor, evento_dict, contexto)
+			sensor.ultimo_valor = valor
+			sensor.fecha_ultima_lectura = hora_ahora
+			db.add(
+				LecturaSensorSimulada(
+					sensor_id=sensor.sensor_id,
+					parcela_id=parcela.parcela_id,
+					tipo_sensor=sensor.tipo.value,
+					valor=valor,
+					unidad=unidad,
+					timestamp=hora_ahora,
+				)
+			)
 
 	if "temperatura" in contexto and "humedad_relativa" in contexto and "vwc" in contexto and "VPD" in contexto:
 		evaluar_alertas_parcela(
@@ -190,10 +198,13 @@ def ejecutar_ciclo_simulacion(session_factory: type[Session] | None = None) -> N
 		parcelas = list(
 			db.scalars(
 				select(ParcelaSimulada)
-				.join(ControladorSimulado, ControladorSimulado.parcela_id == ParcelaSimulada.parcela_id)
 				.where(
 					ParcelaSimulada.activa.is_(True),
-					ControladorSimulado.estado == EstadoTransmision.TRANSMITIENDO,
+					ParcelaSimulada.parcela_id.in_(
+						select(ControladorSimulado.parcela_id).where(
+							ControladorSimulado.estado == EstadoTransmision.TRANSMITIENDO
+						)
+					),
 				)
 			)
 			.all()

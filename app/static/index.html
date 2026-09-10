@@ -490,12 +490,10 @@
 	}
 
 	function renderParcelaCard(card, estado) {
-		const controlador = estado.controladores[0];
-		const enSinSenal = detectarSinSenal(controlador);
-
-		let filasSensores = '<p class="vacio">Este controlador no tiene sensores.</p>';
-		if (controlador && controlador.sensores.length > 0) {
-			filasSensores = `
+		const controladores = estado.controladores || [];
+		const seccionesControladores = controladores.map(controlador => {
+			const enSinSenal = detectarSinSenal(controlador);
+			const filasSensores = controlador.sensores.length > 0 ? `
 				<table>
 					<thead>
 						<tr><th>Sensor</th><th>Tipo</th><th>Valor</th><th>Última lectura</th></tr>
@@ -511,18 +509,32 @@
 						`).join('')}
 					</tbody>
 				</table>
+			` : '<p class="vacio">Este controlador no tiene sensores.</p>';
+
+			return `
+				<section class="controlador-seccion">
+					<div class="parcela-card-header">
+						<h4>Controlador #${controlador.controlador_id}</h4>
+						<span class="controlador-badge ${enSinSenal ? 'sin-senal' : 'transmitiendo'}">
+							${enSinSenal ? 'SIN SEÑAL' : 'TRANSMITIENDO'}
+						</span>
+					</div>
+					${filasSensores}
+					<div class="acciones">
+						<p class="acciones-titulo">Controlador</p>
+						<button class="peligro" data-accion="desconectar-ahora" data-controlador-id="${controlador.controlador_id}" title="Pone este controlador en SIN_SEÑAL de inmediato.">Forzar SIN_SEÑAL (ya)</button>
+						<button class="secundario" data-accion="reconectar-ahora" data-controlador-id="${controlador.controlador_id}" title="Vuelve este controlador a TRANSMITIENDO de inmediato.">Reconectar (ya)</button>
+					</div>
+				</section>
 			`;
-		}
+		}).join('') || '<p class="vacio">Esta parcela no tiene controladores.</p>';
 
 		card.innerHTML = `
 			<div class="parcela-card-header">
 				<h3>${estado.nombre} — ID ${estado.parcela_id}</h3>
-				${controlador ? `<span class="controlador-badge ${enSinSenal ? 'sin-senal' : 'transmitiendo'}">
-					${enSinSenal ? 'SIN SEÑAL' : 'TRANSMITIENDO'}
-				</span>` : ''}
 			</div>
 
-			${filasSensores}
+			<div class="controladores-lista">${seccionesControladores}</div>
 
 			<div class="acciones">
 				<p class="acciones-titulo">Acciones</p>
@@ -536,10 +548,6 @@
 				<div class="grupo-accion">
 					<input type="number" min="0" step="1" value="10" id="mm-lluvia-${estado.parcela_id}" title="Milímetros de lluvia a simular" />
 					<button class="secundario" data-accion="lluvia" title="Registra una lluvia con los mm indicados. Se aplica en el próximo ciclo del scheduler (afecta precipitación y humedad del suelo).">Lluvia</button>
-				</div>
-				<div class="grupo-accion">
-					<button class="peligro" data-accion="desconectar-ahora" title="Pone el controlador en SIN_SEÑAL de inmediato (no espera al scheduler). Simula una falla de conexión del nodo.">Forzar SIN_SEÑAL (ya)</button>
-					<button class="secundario" data-accion="reconectar-ahora" title="Vuelve a poner el controlador en TRANSMITIENDO de inmediato (no espera al scheduler).">Reconectar (ya)</button>
 				</div>
 				<div class="grupo-accion">
 					<button class="secundario" data-accion="historial" title="Muestra las últimas 50 lecturas guardadas de esta parcela.">Ver historial</button>
@@ -560,11 +568,15 @@
 			const mm = Number(document.getElementById(`mm-lluvia-${estado.parcela_id}`).value) || 0;
 			crearEvento(estado.parcela_id, 'LLUVIA', { mm });
 		});
-		card.querySelector('[data-accion="desconectar-ahora"]').addEventListener('click', () => {
-			cambiarControladorAhora(estado.parcela_id, 'SIN_SEÑAL');
+		card.querySelectorAll('[data-accion="desconectar-ahora"]').forEach(boton => {
+			boton.addEventListener('click', () => {
+				cambiarControladorAhora(estado.parcela_id, Number(boton.dataset.controladorId), 'SIN_SEÑAL');
+			});
 		});
-		card.querySelector('[data-accion="reconectar-ahora"]').addEventListener('click', () => {
-			cambiarControladorAhora(estado.parcela_id, 'TRANSMITIENDO');
+		card.querySelectorAll('[data-accion="reconectar-ahora"]').forEach(boton => {
+			boton.addEventListener('click', () => {
+				cambiarControladorAhora(estado.parcela_id, Number(boton.dataset.controladorId), 'TRANSMITIENDO');
+			});
 		});
 		card.querySelector('[data-accion="historial"]').addEventListener('click', () => {
 			toggleHistorial(estado.parcela_id);
@@ -596,17 +608,17 @@
 
 	// ---------- Cambio inmediato del controlador ----------
 
-	async function cambiarControladorAhora(parcelaId, estado) {
+	async function cambiarControladorAhora(parcelaId, controladorId, estado) {
 		try {
 			await llamarApi(`/parcelas/${parcelaId}/controlador`, {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ estado }),
+				body: JSON.stringify({ controlador_id: controladorId, estado }),
 			});
-			log(`Controlador de la parcela ${parcelaId} cambiado a ${estado} de forma inmediata.`, 'ok');
+			log(`Controlador ${controladorId} de la parcela ${parcelaId} cambiado a ${estado}.`, 'ok');
 			cargarEstadoParcela(parcelaId);
 		} catch (err) {
-			log(`Error cambiando el controlador de la parcela ${parcelaId}: ${err.message}`, 'error');
+			log(`Error cambiando el controlador ${controladorId} de la parcela ${parcelaId}: ${err.message}`, 'error');
 		}
 	}
 

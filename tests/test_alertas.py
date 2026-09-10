@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+
+from tests.conftest import ENGINE, SessionLocal
 
 from app.enums.enums import TipoAlerta
 from app.models.alerta_simulada import AlertaSimulada
 from app.models.parcela_simulada import ParcelaSimulada
 from app.services.alerta_service import evaluar_alertas_parcela, reiniciar_estado_alertas
-
-
-ENGINE = create_engine("postgresql+psycopg://usuario:password@localhost:5432/croply_simulator")
-SessionLocal = sessionmaker(bind=ENGINE, autocommit=False, autoflush=False)
 
 
 def _limpiar_tablas() -> None:

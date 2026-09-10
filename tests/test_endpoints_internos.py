@@ -3,8 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 
 from app.enums.enums import EstadoTransmision, TipoSensorEnum
 from app.main import app
@@ -13,10 +12,7 @@ from app.models.evento_manual_pendiente import EventoManualPendiente
 from app.models.lectura_sensor_simulada import LecturaSensorSimulada
 from app.services.alerta_service import reiniciar_estado_alertas
 from app.services.scheduler_service import ejecutar_ciclo_simulacion
-
-
-ENGINE = create_engine("postgresql+psycopg://usuario:password@localhost:5432/croply_simulator")
-SessionLocal = sessionmaker(bind=ENGINE, autocommit=False, autoflush=False)
+from tests.conftest import ENGINE, SessionLocal
 
 
 def _limpiar_tablas() -> None:
@@ -34,7 +30,7 @@ def _payload_parcela() -> dict[str, object]:
 			"nombre": "Parcela Norte",
 			"latitud": -32.89,
 			"longitud": -68.84,
-			"controlador": {
+			"controladores": [{
 				"id": 3,
 				"ip": "192.168.0.10",
 				"estado": "TRANSMITIENDO",
@@ -45,7 +41,7 @@ def _payload_parcela() -> dict[str, object]:
 					{"id": 13, "tipo": "PRECIPITACION"},
 					{"id": 14, "tipo": "PH"},
 				],
-			},
+			}],
 		},
 	}
 
@@ -86,7 +82,7 @@ def test_patch_controlador_actualiza_estado() -> None:
 	_limpiar_tablas()
 	with TestClient(app) as client:
 		_crear_parcela(client)
-		response = client.patch("/parcelas/1/controlador", json={"estado": "SIN_SEÑAL"})
+		response = client.patch("/parcelas/1/controlador", json={"controlador_id": 3, "estado": "SIN_SEÑAL"})
 
 	assert response.status_code == 200
 

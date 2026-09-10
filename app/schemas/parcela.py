@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.enums.enums import EstadoTransmision, TipoSensorEnum
-
 
 class SensorEntrada(BaseModel):
 	id: int
@@ -24,7 +23,15 @@ class ParcelaEntrada(BaseModel):
 	nombre: str
 	latitud: float
 	longitud: float
-	controlador: ControladorEntrada
+	controladores: list[ControladorEntrada] = Field(min_length=1)
+
+	@field_validator("controladores")
+	@classmethod
+	def _ids_de_controlador_unicos(cls, controladores: list[ControladorEntrada]) -> list[ControladorEntrada]:
+		ids = [controlador.id for controlador in controladores]
+		if len(ids) != len(set(ids)):
+			raise ValueError("Los ids de controlador dentro de una misma parcela deben ser únicos")
+		return controladores
 
 
 class ParcelaRequest(BaseModel):

@@ -20,9 +20,16 @@ def actualizar_controlador(
 	dto: ControladorPatchRequest,
 	db: Session = Depends(get_db),
 ) -> dict[str, str]:
-	controlador = db.scalar(select(ControladorSimulado).where(ControladorSimulado.parcela_id == parcela_id))
+	controlador = db.scalar(
+		select(ControladorSimulado).where(
+			ControladorSimulado.parcela_id == parcela_id,
+			ControladorSimulado.controlador_id == dto.controlador_id,
+		)
+	)
 	if controlador is None:
-		raise ParcelaNoEncontradaError(f"La parcela {parcela_id} no existe")
+		raise ParcelaNoEncontradaError(
+			f"El controlador {dto.controlador_id} no existe en la parcela {parcela_id}"
+		)
 
 	controlador.estado = dto.estado
 	db.commit()

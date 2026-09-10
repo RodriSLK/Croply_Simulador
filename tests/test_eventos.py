@@ -2,20 +2,18 @@ from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
 
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.models.evento_manual_pendiente import EventoManualPendiente
+from app.models.parcela_simulada import ParcelaSimulada
 from app.schemas.evento import EventoEntrada
 from app.services.evento_service import (
 	crear_evento_pendiente,
 	marcar_evento_aplicado,
 	obtener_evento_pendiente_mas_antiguo,
 )
-
-
-ENGINE = create_engine("postgresql+psycopg://usuario:password@localhost:5432/croply_simulator")
-SessionLocal = sessionmaker(bind=ENGINE, autocommit=False, autoflush=False)
+from tests.conftest import ENGINE, SessionLocal
 
 
 def _limpiar_tablas() -> None:
@@ -27,10 +25,23 @@ def _dto_evento() -> EventoEntrada:
 	return EventoEntrada.model_validate({"tipo": "RIEGO", "parametros": {"mm": 20}})
 
 
+def _crear_parcela(db: Session) -> None:
+	db.add(
+		ParcelaSimulada(
+			parcela_id=1,
+			nombre="Parcela Norte",
+			latitud=-32.89,
+			longitud=-68.84,
+		)
+	)
+	db.commit()
+
+
 def test_crear_evento_pendiente_persiste_registro() -> None:
 	_limpiar_tablas()
 	db = SessionLocal()
 	try:
+		_crear_parcela(db)
 		evento = crear_evento_pendiente(db, 1, _dto_evento())
 
 		assert evento.id is not None
@@ -46,6 +57,7 @@ def test_obtener_evento_pendiente_mas_antiguo_respeta_orden() -> None:
 	_limpiar_tablas()
 	db = SessionLocal()
 	try:
+		_crear_parcela(db)
 		primero = EventoManualPendiente(
 			parcela_id=1,
 			tipo_evento="RIEGO",
@@ -76,6 +88,7 @@ def test_marcar_evento_aplicado_lo_saca_de_pendientes() -> None:
 	_limpiar_tablas()
 	db = SessionLocal()
 	try:
+		_crear_parcela(db)
 		evento = crear_evento_pendiente(db, 1, _dto_evento())
 
 		marcar_evento_aplicado(db, evento)

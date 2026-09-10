@@ -14,4 +14,5 @@ class ControladorEntrada(BaseModel):
 
 
 class ControladorPatchRequest(BaseModel):
+	controlador_id: int
 	estado: EstadoTransmision

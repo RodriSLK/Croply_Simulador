@@ -13,24 +13,25 @@ from app.models.sensor_simulado import SensorSimulado
 from app.schemas.parcela import ParcelaRequest
 
 
-def _crear_controlador_y_sensores(db: Session, parcela_id: int, dto: ParcelaRequest) -> None:
-	controlador = ControladorSimulado(
-		controlador_id=dto.parcela.controlador.id,
-		parcela_id=parcela_id,
-		ip_controlador=dto.parcela.controlador.ip,
-		estado=dto.parcela.controlador.estado,
-	)
-	db.add(controlador)
-
-	for sensor in dto.parcela.controlador.sensores:
-		db.add(
-			SensorSimulado(
-				sensor_id=sensor.id,
-				controlador_id=dto.parcela.controlador.id,
-				parcela_id=parcela_id,
-				tipo=sensor.tipo,
-			)
+def _crear_controladores_y_sensores(db: Session, parcela_id: int, dto: ParcelaRequest) -> None:
+	for controlador_entrada in dto.parcela.controladores:
+		controlador = ControladorSimulado(
+			controlador_id=controlador_entrada.id,
+			parcela_id=parcela_id,
+			ip_controlador=controlador_entrada.ip,
+			estado=controlador_entrada.estado,
 		)
+		db.add(controlador)
+
+		for sensor in controlador_entrada.sensores:
+			db.add(
+				SensorSimulado(
+					sensor_id=sensor.id,
+					controlador_id=controlador_entrada.id,
+					parcela_id=parcela_id,
+					tipo=sensor.tipo,
+				)
+			)
 
 
 def crear_parcela(db: Session, dto: ParcelaRequest) -> None:
@@ -47,7 +48,7 @@ def crear_parcela(db: Session, dto: ParcelaRequest) -> None:
 			)
 		)
 		db.flush()
-		_crear_controlador_y_sensores(db, dto.parcela.id, dto)
+		_crear_controladores_y_sensores(db, dto.parcela.id, dto)
 		db.commit()
 	except Exception:
 		db.rollback()
@@ -67,7 +68,7 @@ def reemplazar_configuracion(db: Session, parcela_id: int, dto: ParcelaRequest) 
 		parcela.latitud = dto.parcela.latitud
 		parcela.longitud = dto.parcela.longitud
 
-		_crear_controlador_y_sensores(db, parcela_id, dto)
+		_crear_controladores_y_sensores(db, parcela_id, dto)
 		db.commit()
 	except Exception:
 		db.rollback()
