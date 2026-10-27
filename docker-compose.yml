@@ -1,0 +1,69 @@
+name: croply-stack
+
+# Stack integrado: simulador + Croply (backend, frontend) + servicio de recomendación.
+# Desde esta carpeta:
+#   docker compose up --build
+#
+# Ollama (varios GB) queda fuera del arranque. Para incluirlo:
+#   docker compose --profile llm up --build
+#
+# No levantar a la vez el compose de ../docker-compose.yml: comparte los
+# contenedores croply_postgres, croply_backend y croply_frontend, y los puertos 3000 y 5173.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: croply_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: croply_admin
+      POSTGRES_PASSWORD: croply_password
+      POSTGRES_DB: croply_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - croply
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U croply_admin -d croply_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  simulador:
+    build: .
+    container_name: croply_simulador
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://croply_admin:croply_password@postgres:5432/croply_simulator
+      SCHEDULER_INTERVAL_MINUTES: 5
+      OPEN_METEO_BASE_URL: https://api.open-meteo.com/v1/forecast
+      LOG_LEVEL: INFO
+      ENVIRONMENT: development
+    ports:
+      - "8000:8000"
+    networks:
+      - croply
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/status', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  postgres_data:
+    name: croply_simulator_pgdata
+
+networks:
+  croply:
+    name: croply_simulator
+    driver: bridge
