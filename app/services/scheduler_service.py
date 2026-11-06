@@ -70,6 +70,7 @@ def iniciar_scheduler() -> None:
 			replace_existing=True,
 			max_instances=1,
 			coalesce=True,
+			misfire_grace_time=max(60, settings.SCHEDULER_INTERVAL_MINUTES * 60),
 		)
 	if not scheduler.running:
 		scheduler.start()
